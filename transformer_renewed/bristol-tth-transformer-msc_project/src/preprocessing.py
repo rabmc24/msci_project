@@ -9,9 +9,17 @@ import multiprocessing as mp
 import logging
 
 
+
+#Functions to change for MULTICLASSIFICATION:
+#- process_chunk
+#- awkward_to_inputs
+#- apply_reweighting_per_class
+
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# filter_regions filters the DataFrame to only include events from the specified regions.
 def filter_regions(df: pd.DataFrame, regions=[0]) -> pd.DataFrame:
     if isinstance(regions, int):
         regions = [regions]
@@ -59,6 +67,7 @@ def load_from_parquet(filenames=None, regions=[0]) -> pd.DataFrame:
 
     return df
 
+#sets ttH_HToInvisible_M125 as target label (signal). All other processes are background.
 def create_target_labels(process: pd.Series) -> pd.Series:
     return (process == "ttH_HToInvisible_M125").astype(int)
 
@@ -100,6 +109,13 @@ def process_chunk(chunk, target_length: int, dtype=np.float32):
     return x_chunk, y_chunk, padding_mask_chunk
 
 
+#####################
+##### MULTICLASSIFICATION: REQUIRE NEW PROCESS_CHUNK FUNCTION
+#####################
+
+
+
+
 def awkward_to_inputs_parallel(df, target_length=6, n_processes=4):
     logging.info(f"Converting awkward arrays to inputs [target_length={target_length}]...")
 
@@ -116,6 +132,9 @@ def awkward_to_inputs_parallel(df, target_length=6, n_processes=4):
 
     return torch.from_numpy(x_combined), torch.from_numpy(y_combined).unsqueeze(-1), torch.from_numpy(padding_mask_combined)
 
+######################
+##### MULTICLASSIFICATION: REQUIRE NEW AWKWARD_TO_INPUTS FUNCTION
+######################
 
 def awkward_to_inputs(df, target_length=6):
     logging.info("Converting awkward arrays to inputs...")
@@ -186,6 +205,14 @@ def apply_reweighting_per_class(df, weight_var="weight_nominal") -> pd.DataFrame
         logging.info(f"Process '{process}' updated. Sum of 'weight_nominal': {sum_nominal:.5f}, Sum of 'weight_training': {sum_training:.0f}")
 
     return df
+
+
+
+######################
+##### MULTICLASSIFICATION: REQUIRE NEW APPLY_REWEIGHTING_PER_CLASS FUNCTION
+######################
+
+
 
 def apply_reweighting_per_process(df, weight_var="weight_nominal") -> pd.DataFrame:
     """
