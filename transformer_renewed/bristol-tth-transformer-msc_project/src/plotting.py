@@ -110,9 +110,13 @@ def weighted_roc_curve(y_true, y_scores, sample_weights=None):
 
 def plot_roc(labels, preds, outdir=None,show=False):
 
-    # fpr, tpr, thresholds = weighted_roc_curve(labels, preds, sample_weights=sample_weights)
+
+    #### THIS NEEDS TO BE ADJUSTED TO ACCOUNT FOR WEIGHT_NOMINAL ####
+
+    #fpr, tpr, thresholds = weighted_roc_curve(labels, preds, sample_weights=sample_weights)
     # roc_auc = np.trapezoid(tpr, fpr)
 
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
     fpr, tpr, thresholds = roc_curve(labels, preds)
     roc_auc = auc(fpr, tpr)
 
