@@ -77,6 +77,72 @@ def plot_inputs_per_label(inputs, labels, mask, bins, weights=None, log=False, o
         plt.show()
     return fig
 
+
+###########################################
+############ MULTICLASSIFICATION ##########
+###########################################
+
+def plot_inputs_per_label_multiclassification(inputs, labels, mask, bins, weights=None, log=False, outdir=None,show=False):
+    n_parts = inputs.size(1)
+    n_vars = inputs.size(2)
+
+    if weights is not None:
+        weights = weights.unsqueeze(-1).expand(-1,n_parts)
+    fig,axs = plt.subplots(ncols=inputs.size(-1),figsize=(4*inputs.size(-1),3))
+    plt.subplots_adjust(left=0.1,right=0.9,wspace=0.5)
+
+    for i in range(n_vars):
+        bins_var = np.linspace(inputs[...,i].min(),inputs[...,i].max(),bins)
+        mask_sig = (labels==0).ravel()  # Signal is 0
+        mask_bkg1 = (labels==1).ravel() # First background is 1  
+        mask_bkg2 = (labels==2).ravel() # Second background is 2
+
+        # Plot signal
+        axs[i].hist(
+            inputs[mask_sig,:,i][mask[mask_sig]],
+            bins = bins_var,
+            histtype = 'step',
+            color = 'g',
+            label = 'Signal',
+            weights = weights[mask_sig,:][mask[mask_sig]] if weights is not None else None,
+        )
+        # Plot first background
+        axs[i].hist(
+            inputs[mask_bkg1,:,i][mask[mask_bkg1]],
+            bins = bins_var,
+            histtype = 'step', 
+            color = 'r',
+            label = 'Background 1',
+            weights = weights[mask_bkg1,:][mask[mask_bkg1]] if weights is not None else None,
+        )
+        # Plot second background
+        axs[i].hist(
+            inputs[mask_bkg2,:,i][mask[mask_bkg2]],
+            bins = bins_var,
+            histtype = 'step',
+            color = 'b', 
+            label = 'Background 2',
+            weights = weights[mask_bkg2,:][mask[mask_bkg2]] if weights is not None else None,
+        )
+        
+        axs[i].set_xlabel(f'var {i}')
+        if log:
+            axs[i].set_yscale('log')
+        axs[i].legend()
+    if outdir is not None:
+        plt.savefig(f"{outdir}/inputs_per_class.png", dpi=300)
+    if show:
+        plt.show()
+    return fig
+
+
+###########################################
+
+
+
+
+
+
 def weighted_roc_curve(y_true, y_scores, sample_weights=None):
     # If no sample weights are provided, set them to 1
     if sample_weights is None:

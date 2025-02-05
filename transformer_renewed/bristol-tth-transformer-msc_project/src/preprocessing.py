@@ -72,6 +72,22 @@ def create_target_labels(process: pd.Series) -> pd.Series:
     return (process == "ttH_HToInvisible_M125").astype(int)
 
 
+###########################
+### MULTICLASSIFICATION: ##
+
+def create_multiclass_labels(process: pd.Series) -> pd.Series:
+    """
+    Create multiclass labels:
+    0 = ttH_HToInvisible_M125 (signal)
+    1 = TTToSemiLeptonic (background 1)
+    2 = TTTo2L2Nu (background 2)
+    """
+    labels = pd.Series(index=process.index, data=0) # Default to 0 (signal)
+    labels[process == 'TTToSemiLeptonic'] = 1       # Background 1              IMPORTANT: NEED TO CHANGE THIS TO THE CORRECT PROCESS NAME
+    labels[process == 'TTTo2L2Nu'] = 2              # Background 2              IMPORTANT: NEED TO CHANGE THIS TO THE CORRECT PROCESS NAME
+    return labels.astype(int)
+
+###########################
 def get_event_level(df: pd.DataFrame, features=["InputMet_pt"]) -> torch.Tensor:
     return torch.from_numpy(df[features].values)
 
@@ -112,7 +128,24 @@ def process_chunk(chunk, target_length: int, dtype=np.float32):
 #####################
 ##### MULTICLASSIFICATION: REQUIRE NEW PROCESS_CHUNK FUNCTION
 #####################
+def process_chunk_multiclassification(chunk, target_length: int, dtype=np.float32):
+    """Modified process_chunk for 3 classes"""
+    # Previous feature processing remains the same
+    arrays = []
+    masks = []
+    variables = ['pt','eta','phi','mass','area','btagDeepFlavB']
+    for var in variables:
+        arr_padded = ak.pad_none(chunk[f"cleanedJet_{var}"], target_length, clip=True)
+        mask = ~ak.is_none(arr_padded,axis=1)
+        array = ak.fill_none(arr_padded,0).to_numpy()[...,None]
+        arrays.append(array)
+        masks.append(mask)
 
+    x_chunk = np.concatenate(arrays, axis=-1).astype(dtype)
+    padding_mask_chunk = np.logical_and.reduce(masks)
+    y_chunk = chunk['target'].values.astype(dtype)  # Now contains 0,1,2 for 3 classes
+    
+    return x_chunk, y_chunk, padding_mask_chunk
 
 
 
@@ -136,7 +169,27 @@ def awkward_to_inputs_parallel(df, target_length=6, n_processes=4):
 ##### MULTICLASSIFICATION: REQUIRE NEW AWKWARD_TO_INPUTS FUNCTION
 ######################
 
-def awkward_to_inputs(df, target_length=6):
+def awkward_to_inputs_parallel_multiclass(df, target_length=6, n_processes=4):
+    logging.info(f"Converting awkward arrays to inputs [target_length={target_length}]...")
+
+    df_split = split_dataframe(df, n_processes)
+
+    with mp.Pool(processes=n_processes) as pool:
+        results = pool.starmap(process_chunk, [(chunk, target_length) for chunk in df_split])
+
+    x_combined = np.concatenate([res[0] for res in results], axis=0)
+    y_combined = np.concatenate([res[1] for res in results], axis=0)
+    padding_mask_combined = np.concatenate([res[2] for res in results], axis=0)
+
+    logging.info(f"Arrays padded and clipped to target length: {target_length}")
+
+    return torch.from_numpy(x_combined), torch.from_numpy(y_combined), torch.from_numpy(padding_mask_combined)
+#removed unsqueeze(-1) from y_combined since multiclass labels are already 1D
+
+
+
+
+def awkward_to_inputs(df, target_length=6): #Note: Different from the parallel version
     logging.info("Converting awkward arrays to inputs...")
 
     # Pad / shorten arrays to target length
@@ -157,6 +210,10 @@ def awkward_to_inputs(df, target_length=6):
     logging.info("Awkward arrays converted to numpy format.")
 
     return x, y, padding_mask
+
+
+#awkward_to_inputs remains the same...?
+
 
 def normalize_inputs(x):
     logging.info("Normalizing inputs using StandardScaler...")
@@ -210,6 +267,35 @@ def apply_reweighting_per_class(df, weight_var="weight_nominal") -> pd.DataFrame
 
 ######################
 ##### MULTICLASSIFICATION: REQUIRE NEW APPLY_REWEIGHTING_PER_CLASS FUNCTION
+######################
+
+def apply_reweighting_per_class_multiclass(df, weight_var="weight_nominal") -> pd.DataFrame:
+    """Modified reweighting for 3 classes"""
+    logging.info(f"Applying reweighting using variable: {weight_var}")
+
+    # Set up weight_training column
+    df["weight_training"] = df[weight_var]
+
+    # Get unique classes present in data
+    present_classes = sorted(df["target"].unique())
+
+    # Proportions of samples
+    weightings = df[["target", weight_var]].groupby("target").sum()
+    counts = df[["target", weight_var]].count()
+
+    # Reweight each class separately (0=signal, 1=bg1, 2=bg2)
+    for class_id in present_classes:    #in [0, 1, 2]:
+        w_factor = float(counts.iloc[0]) / float(weightings.loc[class_id].iloc[0])
+        logging.info(f"Reweighting class {class_id} with factor: {w_factor:.0f}")
+        
+        df.loc[df["target"] == class_id, "weight_training"] *= w_factor
+        
+        sum_nominal = df.loc[df["target"] == class_id, "weight_nominal"].sum()
+        sum_training = df.loc[df["target"] == class_id, "weight_training"].sum()
+        logging.info(f"Class {class_id} updated. Sum of 'weight_nominal': {sum_nominal:.5f}, Sum of 'weight_training': {sum_training:.0f}")
+
+    return df
+
 ######################
 
 
