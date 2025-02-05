@@ -1,0 +1,2 @@
+epoch,step,train/loss_ce,train/loss_disco,train/loss_tot
+0,472,3.0061159133911133,0.017552431672811508,3.007871150970459

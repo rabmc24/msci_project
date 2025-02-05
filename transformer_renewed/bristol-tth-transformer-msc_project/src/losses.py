@@ -1,5 +1,7 @@
 import torch
 from torch import nn
+import torch.nn.functional as F
+
 
 def distance_corr(var_1,var_2,normedweight,power=1):
     """var_1: First variable to decorrelate (eg mass)
@@ -70,4 +72,39 @@ class BCEDecorrelatedLoss(nn.Module):
             'bce': bce_loss_value.mean(),
             'disco': disco_loss_value.mean(),
             'tot' : bce_loss_value.mean() + self.lam * disco_loss_value.mean(),
+        }
+
+
+
+###############################################################
+############ NEW LOSS FUNCTION FOR MULTICLASSIFIER ############
+###############################################################
+class MulticlassDecorrelatedLoss(nn.Module):
+    def __init__(self, lam=0.1, weighted=True):
+        super().__init__()
+        self.lam = lam
+        self.weighted = weighted
+        self.ce_loss = nn.CrossEntropyLoss(reduction='none')
+    
+    def forward(self, outputs, labels, event, weights=None):
+        # Convert labels to Long type
+        labels = labels.long().squeeze()
+        
+        if not self.weighted or weights is None:
+            weights = torch.ones((labels.shape[0],1)).to(outputs.device)
+            
+        ce_loss_value = self.ce_loss(outputs, labels) * weights.squeeze()
+        
+        probs = F.softmax(outputs, dim=1)
+        
+        normed_weights = weights.squeeze() * len(weights) / weights.sum()
+        disco_loss = 0
+        for i in range(outputs.shape[1]):
+            disco_loss += distance_corr(probs[:,i], event, normed_weights)
+        disco_loss = disco_loss / outputs.shape[1]
+        
+        return {
+            'ce': ce_loss_value.mean(),
+            'disco': disco_loss,
+            'tot': ce_loss_value.mean() + self.lam * disco_loss
         }
