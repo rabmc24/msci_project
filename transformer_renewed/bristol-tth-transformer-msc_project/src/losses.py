@@ -79,6 +79,36 @@ class BCEDecorrelatedLoss(nn.Module):
 ###############################################################
 ############ NEW LOSS FUNCTION FOR MULTICLASSIFIER ############
 ###############################################################
+# class MulticlassDecorrelatedLoss(nn.Module):
+#     def __init__(self, lam=0.1, weighted=True):
+#         super().__init__()
+#         self.lam = lam
+#         self.weighted = weighted
+#         self.ce_loss = nn.CrossEntropyLoss(reduction='none')
+    
+#     def forward(self, outputs, labels, event, weights=None):
+#         # Convert labels to Long type
+#         labels = labels.long().squeeze()
+        
+#         if not self.weighted or weights is None:
+#             weights = torch.ones((labels.shape[0],1)).to(outputs.device)
+            
+#         ce_loss_value = self.ce_loss(outputs, labels) * weights.squeeze()
+        
+#         probs = F.softmax(outputs, dim=1)
+        
+#         normed_weights = weights.squeeze() * len(weights) / weights.sum()
+#         disco_loss = 0
+#         for i in range(outputs.shape[1]):
+#             disco_loss += distance_corr(probs[:,i], event, normed_weights)
+#         disco_loss = disco_loss / outputs.shape[1]
+        
+#         return {
+#             'ce': ce_loss_value.mean(),
+#             'disco': disco_loss,
+#             'tot': ce_loss_value.mean() + self.lam * disco_loss
+#         }
+
 class MulticlassDecorrelatedLoss(nn.Module):
     def __init__(self, lam=0.1, weighted=True):
         super().__init__()
@@ -95,11 +125,11 @@ class MulticlassDecorrelatedLoss(nn.Module):
             
         ce_loss_value = self.ce_loss(outputs, labels) * weights.squeeze()
         
-        probs = F.softmax(outputs, dim=1)
+        probs = F.softmax(outputs, dim=1)  # Will work for 4 classes automatically
         
         normed_weights = weights.squeeze() * len(weights) / weights.sum()
         disco_loss = 0
-        for i in range(outputs.shape[1]):
+        for i in range(outputs.shape[1]):  # Will loop over all 4 classes
             disco_loss += distance_corr(probs[:,i], event, normed_weights)
         disco_loss = disco_loss / outputs.shape[1]
         

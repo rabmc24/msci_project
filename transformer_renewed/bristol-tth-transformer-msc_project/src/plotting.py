@@ -82,7 +82,60 @@ def plot_inputs_per_label(inputs, labels, mask, bins, weights=None, log=False, o
 ############ MULTICLASSIFICATION ##########
 ###########################################
 
-def plot_inputs_per_label_multiclassification(inputs, labels, mask, bins, weights=None, log=False, outdir=None,show=False):
+# def plot_inputs_per_label_multiclassification(inputs, labels, mask, bins, weights=None, log=False, outdir=None,show=False):
+#     n_parts = inputs.size(1)
+#     n_vars = inputs.size(2)
+
+#     if weights is not None:
+#         weights = weights.unsqueeze(-1).expand(-1,n_parts)
+#     fig,axs = plt.subplots(ncols=inputs.size(-1),figsize=(4*inputs.size(-1),3))
+#     plt.subplots_adjust(left=0.1,right=0.9,wspace=0.5)
+
+#     for i in range(n_vars):
+#         bins_var = np.linspace(inputs[...,i].min(),inputs[...,i].max(),bins)
+#         mask_sig = (labels==0).ravel()  # Signal is 0
+#         mask_bkg1 = (labels==1).ravel() # First background is 1  
+#         mask_bkg2 = (labels==2).ravel() # Second background is 2
+
+#         # Plot signal
+#         axs[i].hist(
+#             inputs[mask_sig,:,i][mask[mask_sig]],
+#             bins = bins_var,
+#             histtype = 'step',
+#             color = 'g',
+#             label = 'Signal',
+#             weights = weights[mask_sig,:][mask[mask_sig]] if weights is not None else None,
+#         )
+#         # Plot first background
+#         axs[i].hist(
+#             inputs[mask_bkg1,:,i][mask[mask_bkg1]],
+#             bins = bins_var,
+#             histtype = 'step', 
+#             color = 'r',
+#             label = 'Background 1',
+#             weights = weights[mask_bkg1,:][mask[mask_bkg1]] if weights is not None else None,
+#         )
+#         # Plot second background
+#         axs[i].hist(
+#             inputs[mask_bkg2,:,i][mask[mask_bkg2]],
+#             bins = bins_var,
+#             histtype = 'step',
+#             color = 'b', 
+#             label = 'Background 2',
+#             weights = weights[mask_bkg2,:][mask[mask_bkg2]] if weights is not None else None,
+#         )
+        
+#         axs[i].set_xlabel(f'var {i}')
+#         if log:
+#             axs[i].set_yscale('log')
+#         axs[i].legend()
+#     if outdir is not None:
+#         plt.savefig(f"{outdir}/inputs_per_class.png", dpi=300)
+#     if show:
+#         plt.show()
+#     return fig
+
+def plot_inputs_per_label_multiclassification(inputs, labels, mask, bins, weights=None, log=False, outdir=None, show=False):
     n_parts = inputs.size(1)
     n_vars = inputs.size(2)
 
@@ -91,44 +144,30 @@ def plot_inputs_per_label_multiclassification(inputs, labels, mask, bins, weight
     fig,axs = plt.subplots(ncols=inputs.size(-1),figsize=(4*inputs.size(-1),3))
     plt.subplots_adjust(left=0.1,right=0.9,wspace=0.5)
 
+    # Define colors and labels
+    colors = ['g', 'r', 'b', 'm']
+    class_names = ['Signal', 'ttbar', 'ZJetsToNuNu', 'WJetsToLNu']
+
     for i in range(n_vars):
         bins_var = np.linspace(inputs[...,i].min(),inputs[...,i].max(),bins)
-        mask_sig = (labels==0).ravel()  # Signal is 0
-        mask_bkg1 = (labels==1).ravel() # First background is 1  
-        mask_bkg2 = (labels==2).ravel() # Second background is 2
-
-        # Plot signal
-        axs[i].hist(
-            inputs[mask_sig,:,i][mask[mask_sig]],
-            bins = bins_var,
-            histtype = 'step',
-            color = 'g',
-            label = 'Signal',
-            weights = weights[mask_sig,:][mask[mask_sig]] if weights is not None else None,
-        )
-        # Plot first background
-        axs[i].hist(
-            inputs[mask_bkg1,:,i][mask[mask_bkg1]],
-            bins = bins_var,
-            histtype = 'step', 
-            color = 'r',
-            label = 'Background 1',
-            weights = weights[mask_bkg1,:][mask[mask_bkg1]] if weights is not None else None,
-        )
-        # Plot second background
-        axs[i].hist(
-            inputs[mask_bkg2,:,i][mask[mask_bkg2]],
-            bins = bins_var,
-            histtype = 'step',
-            color = 'b', 
-            label = 'Background 2',
-            weights = weights[mask_bkg2,:][mask[mask_bkg2]] if weights is not None else None,
-        )
+        
+        # Plot for each class
+        for class_idx in range(4):
+            mask_class = (labels==class_idx).ravel()
+            axs[i].hist(
+                inputs[mask_class,:,i][mask[mask_class]],
+                bins=bins_var,
+                histtype='step',
+                color=colors[class_idx],
+                label=class_names[class_idx],
+                weights=weights[mask_class,:][mask[mask_class]] if weights is not None else None,
+            )
         
         axs[i].set_xlabel(f'var {i}')
         if log:
             axs[i].set_yscale('log')
         axs[i].legend()
+    
     if outdir is not None:
         plt.savefig(f"{outdir}/inputs_per_class.png", dpi=300)
     if show:
@@ -240,43 +279,48 @@ def plot_roc(labels, preds, outdir=None,show=False):
 
 
 
+##############################
 def plot_multiclass_roc(labels, predictions, outdir=None, show=False):
-    """Plot ROC curve for signal (class 0) vs rest"""
+    """Plot ROC curves for multiclass predictions using one-vs-rest approach"""
     # Convert tensors to numpy
     if torch.is_tensor(labels):
         labels = labels.numpy()
     if torch.is_tensor(predictions):
         predictions = predictions.numpy()
     
-    # Create binary labels (1 for signal, 0 for backgrounds)
-    binary_labels = (labels == 0).astype(int)
-    # Use signal probability (class 0)
-    signal_probs = predictions[:, 0]
-    
-    # Calculate ROC
-    fpr, tpr, _ = roc_curve(binary_labels, signal_probs)
-    roc_auc = auc(fpr, tpr)
-    
-    # Plot
+    # Setup plot
     fig, ax = plt.subplots(figsize=(8,6))
-    ax.plot(fpr, tpr, color='g', 
-            label=f'Signal vs Rest (AUC = {roc_auc:.3f})')
+    colors = ['g', 'r', 'b', 'm']  # One color per class
+    class_names = ['Signal', 'ttbar', 'ZJetsToNuNu', 'WJetsToLNu']
     
-    ax.plot([0,1], [0,1], 'k--')
+    # Plot ROC curve for each class vs rest
+    for i in range(4):  # For each class
+        # Create binary labels (1 for current class, 0 for all others)
+        binary_labels = (labels == i).astype(int)
+        # Use probability for this class
+        class_probs = predictions[:, i]
+        
+        # Calculate ROC
+        fpr, tpr, _ = roc_curve(binary_labels, class_probs)
+        roc_auc = auc(fpr, tpr)
+        
+        # Plot
+        ax.plot(fpr, tpr, color=colors[i], 
+                label=f'{class_names[i]} vs Rest (AUC = {roc_auc:.3f})')
+    
+    ax.plot([0,1], [0,1], 'k--')  # Diagonal line
     ax.set_xlabel('False Positive Rate')
     ax.set_ylabel('True Positive Rate')
-    ax.set_title('ROC Curve (Signal vs Backgrounds)')
+    ax.set_title('Multiclass ROC Curves (One-vs-Rest)')
     ax.legend()
     
     if outdir:
-        pass
-        # plt.savefig(f"{outdir}/roc_signal_vs_rest.png", dpi=300)
+        plt.savefig(f"{outdir}/roc_multiclass.png", dpi=300)
     if show:
         plt.show()
     
     return fig
 
-##############################
 
 
 

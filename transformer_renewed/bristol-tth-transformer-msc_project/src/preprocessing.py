@@ -79,12 +79,40 @@ def create_multiclass_labels(process: pd.Series) -> pd.Series:
     """
     Create multiclass labels:
     0 = ttH_HToInvisible_M125 (signal)
-    1 = TTToSemiLeptonic (background 1)
-    2 = TTTo2L2Nu (background 2)
+    1 = ttbar (TTToSemiLeptonic + TTTo2L2Nu + TTToHadronic)
+    2 = ZJetsToNuNu (all HT bins)
+    3 = WJetsToLNu (all HT bins)
     """
-    labels = pd.Series(index=process.index, data=0) # Default to 0 (signal)
-    labels[process == 'TTToSemiLeptonic'] = 1       # Background 1              IMPORTANT: NEED TO CHANGE THIS TO THE CORRECT PROCESS NAME
-    labels[process == 'TTTo2L2Nu'] = 2              # Background 2              IMPORTANT: NEED TO CHANGE THIS TO THE CORRECT PROCESS NAME
+    labels = pd.Series(index=process.index, data=0)  # Default to 0 (signal)
+    
+    # TTBar backgrounds (class 1)
+    ttbar_processes = ['TTToSemiLeptonic', 'TTTo2L2Nu', 'TTToHadronic']
+    labels[process.isin(ttbar_processes)] = 1
+    
+    # ZJetsToNuNu backgrounds (class 2)
+    zjets_processes = [
+        'ZJetsToNuNu_HT-100To200',
+        'ZJetsToNuNu_HT-200To400',
+        'ZJetsToNuNu_HT-400To600',
+        'ZJetsToNuNu_HT-600To800',
+        'ZJetsToNuNu_HT-800To1200',
+        'ZJetsToNuNu_HT-1200To2500',
+        'ZJetsToNuNu_HT-2500ToInf'
+    ]
+    labels[process.isin(zjets_processes)] = 2
+    
+    # WJetsToLNu backgrounds (class 3)
+    wjets_processes = [
+        'WJetsToLNu_HT-100To200',
+        'WJetsToLNu_HT-200To400',
+        'WJetsToLNu_HT-400To600',
+        'WJetsToLNu_HT-600To800',
+        'WJetsToLNu_HT-800To1200',
+        'WJetsToLNu_HT-1200To2500',
+        'WJetsToLNu_HT-2500ToInf'
+    ]
+    labels[process.isin(wjets_processes)] = 3
+    
     return labels.astype(int)
 
 ###########################
