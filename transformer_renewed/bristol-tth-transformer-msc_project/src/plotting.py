@@ -206,37 +206,80 @@ def plot_roc(labels, preds, outdir=None,show=False):
 ##############################
 ######## MULTICLASS ##########
 ##############################
+# def plot_multiclass_roc(labels, predictions, outdir=None, show=False):
+#     """Plot ROC curves for multiclass predictions"""
+#     # Convert tensors to numpy
+#     if torch.is_tensor(labels):
+#         labels = labels.numpy()
+#     if torch.is_tensor(predictions):
+#         predictions = predictions.numpy()
+        
+#     fig, ax = plt.subplots(figsize=(8,6))
+#     colors = ['g', 'r', 'b']
+#     classes = ['Signal', 'Background 1', 'Background 2']
+    
+#     for i in range(3):
+#         # One-vs-rest ROC
+#         fpr, tpr, _ = roc_curve((labels == i), predictions[:, i])
+#         roc_auc = auc(fpr, tpr)
+#         ax.plot(fpr, tpr, color=colors[i], 
+#                 label=f'{classes[i]} (AUC = {roc_auc:.3f})')
+    
+#     ax.plot([0,1], [0,1], 'k--')
+#     ax.set_xlabel('False Positive Rate')
+#     ax.set_ylabel('True Positive Rate') 
+#     ax.set_title('Multiclass ROC Curves (One-vs-Rest)')
+#     ax.legend()
+    
+#     if outdir:
+#         plt.savefig(f"{outdir}/roc_multiclass.png", dpi=300)
+#     if show:
+#         plt.show()
+        
+#     return fig
+
+
+
 def plot_multiclass_roc(labels, predictions, outdir=None, show=False):
-    """Plot ROC curves for multiclass predictions"""
+    """Plot ROC curve for signal (class 0) vs rest"""
     # Convert tensors to numpy
     if torch.is_tensor(labels):
         labels = labels.numpy()
     if torch.is_tensor(predictions):
         predictions = predictions.numpy()
-        
-    fig, ax = plt.subplots(figsize=(8,6))
-    colors = ['g', 'r', 'b']
-    classes = ['Signal', 'Background 1', 'Background 2']
     
-    for i in range(3):
-        # One-vs-rest ROC
-        fpr, tpr, _ = roc_curve((labels == i), predictions[:, i])
-        roc_auc = auc(fpr, tpr)
-        ax.plot(fpr, tpr, color=colors[i], 
-                label=f'{classes[i]} (AUC = {roc_auc:.3f})')
+    # Create binary labels (1 for signal, 0 for backgrounds)
+    binary_labels = (labels == 0).astype(int)
+    # Use signal probability (class 0)
+    signal_probs = predictions[:, 0]
+    
+    # Calculate ROC
+    fpr, tpr, _ = roc_curve(binary_labels, signal_probs)
+    roc_auc = auc(fpr, tpr)
+    
+    # Plot
+    fig, ax = plt.subplots(figsize=(8,6))
+    ax.plot(fpr, tpr, color='g', 
+            label=f'Signal vs Rest (AUC = {roc_auc:.3f})')
     
     ax.plot([0,1], [0,1], 'k--')
     ax.set_xlabel('False Positive Rate')
-    ax.set_ylabel('True Positive Rate') 
-    ax.set_title('Multiclass ROC Curves (One-vs-Rest)')
+    ax.set_ylabel('True Positive Rate')
+    ax.set_title('ROC Curve (Signal vs Backgrounds)')
     ax.legend()
     
     if outdir:
-        plt.savefig(f"{outdir}/roc_multiclass.png", dpi=300)
+        pass
+        # plt.savefig(f"{outdir}/roc_signal_vs_rest.png", dpi=300)
     if show:
         plt.show()
-        
+    
     return fig
+
+##############################
+
+
+
 def plot_confusion_matrix(labels, preds, normalize='true', outdir=None, show=False):
     # convert preds to binary decisions
     preds = np.round(preds)
