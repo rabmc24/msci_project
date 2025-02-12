@@ -82,7 +82,13 @@ def create_multiclass_labels(process: pd.Series) -> pd.Series:
     1 = ttbar (TTToSemiLeptonic + TTTo2L2Nu + TTToHadronic)
     2 = ZJetsToNuNu (all HT bins)
     3 = WJetsToLNu (all HT bins)
+    4 = QCD (all HT bins)
+    5 = Multiboson (WW, WZ, ZZ, WWW, WWZ, WZZ, ZZZ)
+    6 = ttV (TTWJetsToLNu, TTZToLLNuNu_M-10)
+    7 = EWK (EWKWPlus2Jets_WToLNu_M-50, EWKWMinus2Jets_WToLNu_M-50, EWKZ2Jets_ZToNuNu_M-50, EWKZ2Jets_ZToLL_M-50)
     """
+
+
     labels = pd.Series(index=process.index, data=0)  # Default to 0 (signal)
     
     # TTBar backgrounds (class 1)
@@ -111,7 +117,53 @@ def create_multiclass_labels(process: pd.Series) -> pd.Series:
         'WJetsToLNu_HT-1200To2500',
         'WJetsToLNu_HT-2500ToInf'
     ]
+
     labels[process.isin(wjets_processes)] = 3
+
+    # QCD backgrounds (class 4)
+    QCD_processes = [
+        'QCD_HT100to200',
+        'QCD_HT200to300',
+        'QCD_HT300to500',
+        'QCD_HT500to700',
+        'QCD_HT700to1000',
+        'QCD_HT1000to1500',
+        'QCD_HT1500to2000',
+        'QCD_HT2000toInf'
+    ]
+
+    labels[process.isin(QCD_processes)] = 4
+
+    #  Multiboson events (class 5)
+    Multiboson_processes = [
+        'WW',
+        'WZ',
+        'ZZ',
+        'WWW_4F',
+        'WWZ_4F',
+        'WZZ',
+        'ZZZ'
+    ]
+
+    labels[process.isin(Multiboson_processes)] = 5
+
+    # ttV events (class 6)
+    ttV_processes = [
+        'TTWJetsToLNu',
+        'TTZToLLNuNu_M-10',
+    ]
+
+    labels[process.isin(ttV_processes)] = 6
+
+    # EWK backgrounds (class 7)
+    EWK_processes = [
+        'EWKWPlus2Jets_WToLNu_M-50',
+        'EWKWMinus2Jets_WToLNu_M-50',
+        'EWKZ2Jets_ZToNuNu_M-50',
+        'EWKZ2Jets_ZToLL_M-50',
+    ]
+
+    labels[process.isin(EWK_processes)] = 7
     
     return labels.astype(int)
 

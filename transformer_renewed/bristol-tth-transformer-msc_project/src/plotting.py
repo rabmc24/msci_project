@@ -144,15 +144,16 @@ def plot_inputs_per_label_multiclassification(inputs, labels, mask, bins, weight
     fig,axs = plt.subplots(ncols=inputs.size(-1),figsize=(4*inputs.size(-1),3))
     plt.subplots_adjust(left=0.1,right=0.9,wspace=0.5)
 
-    # Define colors and labels
-    colors = ['g', 'r', 'b', 'm']
-    class_names = ['Signal', 'ttbar', 'ZJetsToNuNu', 'WJetsToLNu']
+    # Define colors and labels for 8 classes
+    colors = ['g', 'r', 'b', 'm', 'c', 'y', 'orange', 'pink']
+    class_names = ['Signal', 'ttbar', 'ZJetsToNuNu', 'WJetsToLNu', 
+                  'QCD', 'Multiboson', 'ttV', 'EWK']
 
     for i in range(n_vars):
         bins_var = np.linspace(inputs[...,i].min(),inputs[...,i].max(),bins)
         
         # Plot for each class
-        for class_idx in range(4):
+        for class_idx in range(8):
             mask_class = (labels==class_idx).ravel()
             axs[i].hist(
                 inputs[mask_class,:,i][mask[mask_class]],
@@ -169,7 +170,8 @@ def plot_inputs_per_label_multiclassification(inputs, labels, mask, bins, weight
         axs[i].legend()
     
     if outdir is not None:
-        plt.savefig(f"{outdir}/inputs_per_class.png", dpi=300)
+        pass
+        #plt.savefig(f"{outdir}/inputs_per_class.png", dpi=300)
     if show:
         plt.show()
     return fig
@@ -280,6 +282,8 @@ def plot_roc(labels, preds, outdir=None,show=False):
 
 
 ##############################
+######## MULTICLASS ##########
+##############################
 def plot_multiclass_roc(labels, predictions, outdir=None, show=False):
     """Plot ROC curves for multiclass predictions using one-vs-rest approach"""
     # Convert tensors to numpy
@@ -290,11 +294,12 @@ def plot_multiclass_roc(labels, predictions, outdir=None, show=False):
     
     # Setup plot
     fig, ax = plt.subplots(figsize=(8,6))
-    colors = ['g', 'r', 'b', 'm']  # One color per class
-    class_names = ['Signal', 'ttbar', 'ZJetsToNuNu', 'WJetsToLNu']
+    colors = ['g', 'r', 'b', 'm', 'c', 'y', 'orange', 'pink']
+    class_names = ['Signal', 'ttbar', 'ZJetsToNuNu', 'WJetsToLNu', 
+                  'QCD', 'Multiboson', 'ttV', 'EWK']
     
     # Plot ROC curve for each class vs rest
-    for i in range(4):  # For each class
+    for i in range(8):  # For each class
         # Create binary labels (1 for current class, 0 for all others)
         binary_labels = (labels == i).astype(int)
         # Use probability for this class
@@ -315,7 +320,8 @@ def plot_multiclass_roc(labels, predictions, outdir=None, show=False):
     ax.legend()
     
     if outdir:
-        plt.savefig(f"{outdir}/roc_multiclass.png", dpi=300)
+        pass
+        #plt.savefig(f"{outdir}/roc_multiclass.png", dpi=300)
     if show:
         plt.show()
     
@@ -324,18 +330,55 @@ def plot_multiclass_roc(labels, predictions, outdir=None, show=False):
 
 
 
+# def plot_confusion_matrix(labels, preds, normalize='true', outdir=None, show=False):
+#     # convert preds to binary decisions
+#     preds = np.round(preds)
+
+#     # Compute confusion matrix
+#     cm = confusion_matrix(labels, preds, normalize=normalize)
+#     disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+
+#     # plot
+#     fig,ax = plt.subplots(1,1,figsize=(5, 5))
+#     disp.plot(ax=ax,values_format='.2f')
+#     #sns.heatmap(cm_normalized, annot=True, fmt=".2f", cmap='Blues')
+#     if normalize == 'all':
+#         plt.xlabel('Predicted Labels')
+#         plt.ylabel('True Labels')
+#     if normalize == 'true':
+#         plt.xlabel('Predicted Labels')
+#         plt.ylabel('True Labels [normed]')
+#     if normalize == 'pred':
+#         plt.xlabel('Predicted Labels [normed]')
+#         plt.ylabel('True Labels')
+#     plt.tight_layout()
+#     if outdir is not None:
+#         pass
+#         #plt.savefig(f"{outdir}/confusion_matrix.png", dpi=300)
+#     if show:
+#         plt.show()
+#     return fig
+
 def plot_confusion_matrix(labels, preds, normalize='true', outdir=None, show=False):
-    # convert preds to binary decisions
-    preds = np.round(preds)
+    # Define class names
+    class_names = ['Signal', 'ttbar', 'ZJetsToNuNu', 'WJetsToLNu', 
+                  'QCD', 'Multiboson', 'ttV', 'EWK']
+    
+    # Get predicted classes if preds contains probabilities
+    if len(preds.shape) > 1:
+        preds = np.argmax(preds, axis=1)
+    else:
+        preds = np.round(preds)
 
     # Compute confusion matrix
-    cm = confusion_matrix(labels, preds, normalize=normalize)
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+    cm = confusion_matrix(labels, preds, labels=range(8), normalize=normalize)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
 
     # plot
-    fig,ax = plt.subplots(1,1,figsize=(5, 5))
-    disp.plot(ax=ax,values_format='.2f')
-    #sns.heatmap(cm_normalized, annot=True, fmt=".2f", cmap='Blues')
+    fig, ax = plt.subplots(1,1, figsize=(10, 8))  # Increased figure size for readability
+    disp.plot(ax=ax, values_format='.2f', cmap='Blues')
+    plt.xticks(rotation=45, ha='right')  # Rotate labels for better readability
+    
     if normalize == 'all':
         plt.xlabel('Predicted Labels')
         plt.ylabel('True Labels')
@@ -345,12 +388,16 @@ def plot_confusion_matrix(labels, preds, normalize='true', outdir=None, show=Fal
     if normalize == 'pred':
         plt.xlabel('Predicted Labels [normed]')
         plt.ylabel('True Labels')
+    
+    plt.title('Normalized Multiclass Confusion Matrix')
     plt.tight_layout()
+    
     if outdir is not None:
-        plt.savefig(f"{outdir}/confusion_matrix.png", dpi=300)
+        plt.savefig(f"{outdir}/confusion_matrix.png", dpi=300, bbox_inches='tight')
     if show:
         plt.show()
     return fig
+
 
 def plot_score(labels, preds, bins, weights=None, log=False,outdir=None, show=False):
     fig,ax = plt.subplots(ncols=1,nrows=1,figsize=(5,4))
