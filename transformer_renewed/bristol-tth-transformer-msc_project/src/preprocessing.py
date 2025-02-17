@@ -20,7 +20,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # filter_regions filters the DataFrame to only include events from the specified regions.
-def filter_regions(df: pd.DataFrame, regions=[0]) -> pd.DataFrame:
+def filter_regions(df: pd.DataFrame, regions=[0,6]) -> pd.DataFrame:
     if isinstance(regions, int):
         regions = [regions]
     df = df.loc[df["region"].isin(regions)]
@@ -28,7 +28,7 @@ def filter_regions(df: pd.DataFrame, regions=[0]) -> pd.DataFrame:
     return df
     
 
-def load_from_hdf(filenames=None, regions=[0]) -> pd.DataFrame:
+def load_from_hdf(filenames=None, regions=[0,6]) -> pd.DataFrame:
 
     df = pd.DataFrame()
     if filenames:
@@ -47,7 +47,7 @@ def load_from_hdf(filenames=None, regions=[0]) -> pd.DataFrame:
 
     return df
 
-def load_from_parquet(filenames=None, regions=[0]) -> pd.DataFrame:
+def load_from_parquet(filenames=None, regions=[0,6]) -> pd.DataFrame:
 
     df = pd.DataFrame()
     if filenames:
