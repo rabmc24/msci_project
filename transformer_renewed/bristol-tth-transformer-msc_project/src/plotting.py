@@ -145,8 +145,8 @@ def plot_inputs_per_label_multiclassification(inputs, labels, mask, bins, weight
     plt.subplots_adjust(left=0.1,right=0.9,wspace=0.5)
 
     # Define colors and labels
-    colors = ['g', 'r', 'b', 'm']
-    class_names = ['Signal', 'ttbar', 'ZJetsToNuNu', 'WJetsToLNu']
+    colors = ['g', 'r', 'b']
+    class_names = ['Signal', 'ttbar', 'Z/WJetsToNuNu']
 
     for i in range(n_vars):
         bins_var = np.linspace(inputs[...,i].min(),inputs[...,i].max(),bins)
@@ -257,7 +257,7 @@ def plot_multiclass_roc(labels, predictions, outdir=None, show=False):
     # Setup plot
     fig, ax = plt.subplots(figsize=(8,6))
     colors = ['g', 'r', 'b']  # Three colors for three classes
-    class_names = ['Signal', 'ttbar', 'ZJetsToNuNu']  # Three class names
+    class_names = ['Signal', 'ttbar', 'Z/WJetsToNuNu']  # Three class names
     
     # Plot ROC curve for each class vs rest
     for i in range(3):  # Changed from 4 to 3 classes
