@@ -245,44 +245,10 @@ def plot_roc(labels, preds, outdir=None,show=False):
 ##############################
 ######## MULTICLASS ##########
 ##############################
-# def plot_multiclass_roc(labels, predictions, outdir=None, show=False):
-#     """Plot ROC curves for multiclass predictions"""
-#     # Convert tensors to numpy
-#     if torch.is_tensor(labels):
-#         labels = labels.numpy()
-#     if torch.is_tensor(predictions):
-#         predictions = predictions.numpy()
-        
-#     fig, ax = plt.subplots(figsize=(8,6))
-#     colors = ['g', 'r', 'b']
-#     classes = ['Signal', 'Background 1', 'Background 2']
-    
-#     for i in range(3):
-#         # One-vs-rest ROC
-#         fpr, tpr, _ = roc_curve((labels == i), predictions[:, i])
-#         roc_auc = auc(fpr, tpr)
-#         ax.plot(fpr, tpr, color=colors[i], 
-#                 label=f'{classes[i]} (AUC = {roc_auc:.3f})')
-    
-#     ax.plot([0,1], [0,1], 'k--')
-#     ax.set_xlabel('False Positive Rate')
-#     ax.set_ylabel('True Positive Rate') 
-#     ax.set_title('Multiclass ROC Curves (One-vs-Rest)')
-#     ax.legend()
-    
-#     if outdir:
-#         plt.savefig(f"{outdir}/roc_multiclass.png", dpi=300)
-#     if show:
-#         plt.show()
-        
-#     return fig
-
-
 
 ##############################
 def plot_multiclass_roc(labels, predictions, outdir=None, show=False):
     """Plot ROC curves for multiclass predictions using one-vs-rest approach"""
-    # Convert tensors to numpy
     if torch.is_tensor(labels):
         labels = labels.numpy()
     if torch.is_tensor(predictions):
@@ -290,25 +256,21 @@ def plot_multiclass_roc(labels, predictions, outdir=None, show=False):
     
     # Setup plot
     fig, ax = plt.subplots(figsize=(8,6))
-    colors = ['g', 'r', 'b', 'm']  # One color per class
-    class_names = ['Signal', 'ttbar', 'ZJetsToNuNu', 'WJetsToLNu']
+    colors = ['g', 'r', 'b']  # Three colors for three classes
+    class_names = ['Signal', 'ttbar', 'ZJetsToNuNu']  # Three class names
     
     # Plot ROC curve for each class vs rest
-    for i in range(4):  # For each class
-        # Create binary labels (1 for current class, 0 for all others)
+    for i in range(3):  # Changed from 4 to 3 classes
         binary_labels = (labels == i).astype(int)
-        # Use probability for this class
         class_probs = predictions[:, i]
         
-        # Calculate ROC
         fpr, tpr, _ = roc_curve(binary_labels, class_probs)
         roc_auc = auc(fpr, tpr)
         
-        # Plot
         ax.plot(fpr, tpr, color=colors[i], 
                 label=f'{class_names[i]} vs Rest (AUC = {roc_auc:.3f})')
     
-    ax.plot([0,1], [0,1], 'k--')  # Diagonal line
+    ax.plot([0,1], [0,1], 'k--')
     ax.set_xlabel('False Positive Rate')
     ax.set_ylabel('True Positive Rate')
     ax.set_title('Multiclass ROC Curves (One-vs-Rest)')
