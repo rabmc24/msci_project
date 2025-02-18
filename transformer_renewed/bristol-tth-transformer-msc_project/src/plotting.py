@@ -152,7 +152,7 @@ def plot_inputs_per_label_multiclassification(inputs, labels, mask, bins, weight
         bins_var = np.linspace(inputs[...,i].min(),inputs[...,i].max(),bins)
         
         # Plot for each class
-        for class_idx in range(4):
+        for class_idx in range(3):
             mask_class = (labels==class_idx).ravel()
             axs[i].hist(
                 inputs[mask_class,:,i][mask[mask_class]],
