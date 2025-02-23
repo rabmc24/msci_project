@@ -1,2 +1,3 @@
 src/__pycache__
 notebooks/comet_logs/*
+/notebooks/cached_dataset.pkl
