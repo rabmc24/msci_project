@@ -79,35 +79,6 @@ class BCEDecorrelatedLoss(nn.Module):
 ###############################################################
 ############ NEW LOSS FUNCTION FOR MULTICLASSIFIER ############
 ###############################################################
-# class MulticlassDecorrelatedLoss(nn.Module):
-#     def __init__(self, lam=0.1, weighted=True):
-#         super().__init__()
-#         self.lam = lam
-#         self.weighted = weighted
-#         self.ce_loss = nn.CrossEntropyLoss(reduction='none')
-    
-#     def forward(self, outputs, labels, event, weights=None):
-#         # Convert labels to Long type
-#         labels = labels.long().squeeze()
-        
-#         if not self.weighted or weights is None:
-#             weights = torch.ones((labels.shape[0],1)).to(outputs.device)
-            
-#         ce_loss_value = self.ce_loss(outputs, labels) * weights.squeeze()
-        
-#         probs = F.softmax(outputs, dim=1)
-        
-#         normed_weights = weights.squeeze() * len(weights) / weights.sum()
-#         disco_loss = 0
-#         for i in range(outputs.shape[1]):
-#             disco_loss += distance_corr(probs[:,i], event, normed_weights)
-#         disco_loss = disco_loss / outputs.shape[1]
-        
-#         return {
-#             'ce': ce_loss_value.mean(),
-#             'disco': disco_loss,
-#             'tot': ce_loss_value.mean() + self.lam * disco_loss
-#         }
 
 class MulticlassDecorrelatedLoss(nn.Module):
     def __init__(self, lam=0.1, weighted=True):
@@ -137,4 +108,70 @@ class MulticlassDecorrelatedLoss(nn.Module):
             'ce': ce_loss_value.mean(),
             'disco': disco_loss,
             'tot': ce_loss_value.mean() + self.lam * disco_loss
+        }
+
+
+## FOCAL LOSS ##
+class FocalLoss(nn.Module):
+    def __init__(self, gamma=2, alpha=None, reduction='none'):
+        """
+        gamma: focusing parameter
+        alpha: weight factor per class (tensor) or None
+        reduction: 'none', 'mean', or 'sum'
+        """
+        super().__init__()
+        self.gamma = gamma
+        self.alpha = alpha
+        self.reduction = reduction
+
+    def forward(self, inputs, targets):
+        # inputs: logits with shape (N, C), targets: (N,)
+        logpt = -F.cross_entropy(inputs, targets, reduction='none')
+        pt = torch.exp(logpt)
+        loss = -((1 - pt) ** self.gamma) * logpt
+        if self.alpha is not None:
+            # If alpha is given as a tensor of shape (C,)
+            alpha_t = self.alpha.gather(0, targets.data.view(-1))
+            loss = alpha_t * loss
+        if self.reduction == 'mean':
+            return loss.mean()
+        elif self.reduction == 'sum':
+            return loss.sum()
+        else:
+            return loss
+
+
+    
+class MulticlassDecorrelatedFocalLoss(nn.Module):
+    def __init__(self, gamma=2, alpha=None, lam=0.1, weighted=True):
+        """
+        gamma: focusing parameter for FocalLoss
+        alpha: class weighting for FocalLoss (tensor of shape [num_classes] or None)
+        lam: lambda to weight the decorrelation loss
+        weighted: whether to use provided per-example weights
+        """
+        super().__init__()
+        self.lam = lam
+        self.weighted = weighted
+        self.focal_loss = FocalLoss(gamma=gamma, alpha=alpha, reduction='none')
+
+    def forward(self, outputs, labels, event, weights=None):
+        # Convert labels to long type and squeeze extra dims
+        labels = labels.long().squeeze()
+        if not self.weighted or weights is None:
+            weights = torch.ones((labels.shape[0], 1), device=outputs.device)
+        
+        focal_loss_value = self.focal_loss(outputs, labels) * weights.squeeze()
+
+        probs = F.softmax(outputs, dim=1)
+        normed_weights = weights.squeeze() * len(weights) / weights.sum()
+        disco_loss = 0
+        for i in range(outputs.shape[1]):
+            disco_loss += distance_corr(probs[:, i], event, normed_weights)
+        disco_loss = disco_loss / outputs.shape[1]
+        
+        return {
+            'focal': focal_loss_value.mean(),
+            'disco': disco_loss,
+            'tot': focal_loss_value.mean() + self.lam * disco_loss
         }
