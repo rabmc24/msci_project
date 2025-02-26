@@ -7,6 +7,7 @@ from preprocessing import (
     remove_negative_events,
     create_multiclass_labels,
     apply_reweighting_per_class_multiclass,
+    apply_reweighting_regressor,
     awkward_to_inputs_parallel_multiclass,
     get_event_level,
 )
@@ -37,11 +38,12 @@ def get_preprocessed_dataset_regressor(cache_path="cached_dataset_regressor.pkl"
     #df["target"] = create_multiclass_labels(df["dataset"])
     target_regressor = "GenMET_pt"
     df["target_regressor"] = df[target_regressor]
+    df["target"] = df["target_regressor"]
 
 
 
 
-    apply_reweighting_per_class_multiclass(df)
+    apply_reweighting_regressor(df)
     reweighting = torch.Tensor(df['weight_training'].values)
     weight_nominal_tensor = torch.Tensor(df['weight_nominal'].values)
     
@@ -51,8 +53,8 @@ def get_preprocessed_dataset_regressor(cache_path="cached_dataset_regressor.pkl"
 
 
 
-    input_MET_vals = torch.Tensor(df['MET_pt'].values)
-    input_MET_phi_vals = torch.Tensor(df['MET_phi'].values)
+    input_MET_vals = torch.Tensor(df['MET_pt'].values)   #### input MET?
+    input_MET_phi_vals = torch.Tensor(df['MET_phi'].values) #### input MET phi?
     
 
 

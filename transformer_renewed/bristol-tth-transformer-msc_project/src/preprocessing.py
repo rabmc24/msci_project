@@ -286,7 +286,35 @@ def apply_reweighting_per_class(df, weight_var="weight_nominal") -> pd.DataFrame
     return df
 
 
-
+####REGRESSOR
+def apply_reweighting_regressor(df, weight_var="weight_nominal") -> pd.DataFrame:
+    """
+    Apply global reweighting for the regressor model where only TTToSemiLeptonic events are considered.
+    This scales the weight_training column so that the total number of events matches the sum of weights,
+    which can help stabilize training.
+    """
+    import logging
+    logging.info(f"Applying reweighting for regressor using variable: {weight_var}")
+    
+    # Copy nominal weights to a new column
+    df["weight_training"] = df[weight_var].copy()
+    
+    total_events = len(df)
+    total_weight = df[weight_var].sum()
+    
+    if total_weight == 0:
+        logging.warning("Total weight is zero; skipping reweighting.")
+        return df
+    
+    # Compute a single scaling factor
+    w_factor = total_events / total_weight
+    logging.info(f"Global reweighting factor: {w_factor:.2f}")
+    
+    # Apply the scaling factor globally for TTToSemiLeptonic events
+    df["weight_training"] *= w_factor
+    logging.info(f"Sum of '{weight_var}': {total_weight:.5f}, Sum of 'weight_training': {df['weight_training'].sum():.0f}")
+    
+    return df
 ######################
 ##### MULTICLASSIFICATION: REQUIRE NEW APPLY_REWEIGHTING_PER_CLASS FUNCTION
 ######################
