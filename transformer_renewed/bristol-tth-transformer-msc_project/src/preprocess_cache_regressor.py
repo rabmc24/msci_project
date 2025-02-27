@@ -27,8 +27,11 @@ def get_preprocessed_dataset_regressor(cache_path="cached_dataset_regressor.pkl"
 
     # Specify dataset files
     path = "/cephfs/dice/projects/CMS/Hinv/ml_datasets_ul_241111/ml_inputs_UL{year}/{dataset}.parquet"
+    
     datasets = ['TTToSemiLeptonic']
+    
     years = ['2018']
+    
     files = [path.format(year=year, dataset=dataset) for dataset in datasets for year in years]
 
     # Preprocessing
@@ -53,13 +56,18 @@ def get_preprocessed_dataset_regressor(cache_path="cached_dataset_regressor.pkl"
 
 
 
-    input_MET_vals = torch.Tensor(df['MET_pt'].values)   #### input MET?
-    input_MET_phi_vals = torch.Tensor(df['MET_phi'].values) #### input MET phi?
-    
+    input_MET_phi_vals = torch.Tensor(df['InputMet_phi'].values)
+    target_regressor = torch.Tensor(df['target_regressor'].values)
 
 
-    (train_X, val_X, train_y, val_y, train_weights, val_weights,
-     train_mask, val_mask, train_event, val_event, train_weight_nominal, val_weight_nominal, train_MET_phi, val_MET_phi, train_target, val_target) = train_test_split(
+    (train_X, val_X, 
+     train_y, val_y, 
+     train_weights, val_weights,
+     train_mask, val_mask, 
+     train_event, val_event, 
+     train_weight_nominal, val_weight_nominal, 
+     train_MET_phi, val_MET_phi, 
+     train_target, val_target) = train_test_split(
         X, 
         y, 
         reweighting, 
@@ -109,6 +117,8 @@ def get_preprocessed_dataset_regressor(cache_path="cached_dataset_regressor.pkl"
         'val_MET_phi': val_MET_phi,
         'train_target': train_target,
         'val_target': val_target,
+        'target_regressor': target_regressor,
+        'input_MET_phi_vals': input_MET_phi_vals,
     }
     with open(cache_path, "wb") as f:
         pickle.dump(data, f)

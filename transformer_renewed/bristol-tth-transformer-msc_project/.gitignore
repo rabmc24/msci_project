@@ -1,3 +1,4 @@
 src/__pycache__
 notebooks/comet_logs/*
 /notebooks/cached_dataset.pkl
+/notebooks/cached_dataset_regressor.pkl
