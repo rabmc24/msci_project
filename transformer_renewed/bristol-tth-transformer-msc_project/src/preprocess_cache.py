@@ -27,10 +27,15 @@ def get_preprocessed_dataset(cache_path="cached_dataset.pkl", test_size=0.2, ran
     # Specify dataset files
     path = "/cephfs/dice/projects/CMS/Hinv/ml_datasets_ul_241111/ml_inputs_UL{year}/{dataset}.parquet"
     datasets = [
+        #Signal
         'ttH_HToInvisible_M125',
+
+        #ttbar (Background 1)
         'TTToSemiLeptonic',
         'TTTo2L2Nu',
         'TTToHadronic',
+
+        #V+jets (Background 2)
         'ZJetsToNuNu_HT-100To200',
         'ZJetsToNuNu_HT-200To400',
         'ZJetsToNuNu_HT-400To600',
