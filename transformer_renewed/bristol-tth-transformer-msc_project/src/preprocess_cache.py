@@ -21,7 +21,7 @@ def get_preprocessed_dataset(cache_path="cached_dataset.pkl", test_size=0.2, ran
         
     print("Processing parquet files...")
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-    outdir = f"./model_training/AOTransformer_{current_time}"
+    outdir = f"../notebooks/model_training/AOTransformer_{current_time}"
     os.makedirs(outdir, exist_ok=False)
 
     # Specify dataset files
