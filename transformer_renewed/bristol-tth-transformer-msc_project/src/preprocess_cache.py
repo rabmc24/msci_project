@@ -57,6 +57,9 @@ def get_preprocessed_dataset(cache_path="cached_dataset.pkl", test_size=0.2, ran
     # Preprocessing
     df = load_from_parquet(files,regions=[0,6])
     df = remove_negative_events(df)
+
+    data_columns = df.columns #
+
     df["target"] = create_multiclass_labels(df["dataset"])
     apply_reweighting_per_class_multiclass(df)
     reweighting = torch.Tensor(df['weight_training'].values)
@@ -104,6 +107,7 @@ def get_preprocessed_dataset(cache_path="cached_dataset.pkl", test_size=0.2, ran
         'train_weight_nominal': train_weight_nominal,
         'val_weight_nominal': val_weight_nominal,
         'outdir': outdir,
+        'data_columns': data_columns
     }
     with open(cache_path, "wb") as f:
         pickle.dump(data, f)

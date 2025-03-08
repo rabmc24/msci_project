@@ -111,6 +111,23 @@ class MulticlassDecorrelatedLoss(nn.Module):
         }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## FOCAL LOSS ##
 class FocalLoss(nn.Module):
     def __init__(self, gamma=2, alpha=None, reduction='none'):
