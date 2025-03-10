@@ -111,8 +111,63 @@ class MulticlassDecorrelatedLoss(nn.Module):
         }
 
 
+###########################
+#### Redone FOCAL LOSS ####
+###########################
 
+class MulticlassFocalLoss(nn.Module):
+    def __init__(self, gamma=0, alpha=None, weighted=False):
+        """
+        gamma: focusing parameter
+        alpha: per-class weight factor (list or tensor of shape [num_classes]) or None
+        weighted: whether to use provided per-example weights
+        """
+        super().__init__()
+        self.gamma = gamma
+        self.weighted = weighted
+        
+        # Handle class-specific alpha weights
+        if alpha is None:
+            self.alpha = None
+        else:
+            # Convert alpha list to tensor and (optionally) normalize
+            self.alpha = torch.tensor(alpha, dtype=torch.float32)
+            if self.alpha.sum() > 0:
+                self.alpha = self.alpha / self.alpha.sum()
 
+    def forward(self, outputs, labels, event, weights=None):
+        labels = labels.to(torch.long)
+        
+        # If labels have an extra singleton dimension, squeeze it.
+        if labels.dim() == 2 and labels.shape[1] == 1:
+            labels = labels.squeeze(1)
+
+        # Use log_softmax for numerical stability
+        log_softmax = F.log_softmax(outputs, dim=-1)
+        log_pt = torch.gather(log_softmax, dim=1, index=labels.unsqueeze(1))
+
+        # Convert log_pt to probabilities
+        pt = torch.exp(log_pt).clamp(min=1e-10, max=1.0)
+
+        # Calculate the focal weighting factor
+        focal_weight = ((1 - pt) ** self.gamma).detach()
+
+        # Apply class-specific alpha weights if provided
+        if self.alpha is not None:
+            self.alpha = self.alpha.to(outputs.device)
+            alpha_t = self.alpha[labels].unsqueeze(1)
+            focal_weight = alpha_t * focal_weight
+
+        # Final focal loss calculation
+        FL = -focal_weight * log_pt
+
+        # Handle per-sample weights
+        if not self.weighted or weights is None:
+            weights = torch.ones(labels.shape[0], device=outputs.device)
+
+        # Multiply by weights and average
+        weighted_loss = FL.squeeze() * weights
+        return weighted_loss.mean()
 
 
 
