@@ -21,7 +21,7 @@ def get_preprocessed_dataset_binary(cache_path="cached_dataset_binary.pkl", test
         
     print("Processing parquet files...")
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-    outdir = f"../notebooks/model_training/AOTransformer_{current_time}"
+    outdir = f"../notebooks/model_training/BinaryTransformer_{current_time}"
     os.makedirs(outdir, exist_ok=False)
 
     # Specify dataset files
