@@ -349,35 +349,78 @@ def apply_reweighting_per_class(df, weight_var="weight_nominal") -> pd.DataFrame
 ##### MULTICLASSIFICATION: REQUIRE NEW APPLY_REWEIGHTING_PER_CLASS FUNCTION
 ######################
 
-def apply_reweighting_per_class_multiclass(df, weight_var="weight_nominal") -> pd.DataFrame:
-    """Modified reweighting for 3 classes"""
-    logging.info(f"Applying reweighting using variable: {weight_var}")
+# def apply_reweighting_per_class_multiclass(df, weight_var="weight_nominal") -> pd.DataFrame:
+#     """Modified reweighting for 3 classes"""
+#     logging.info(f"Applying reweighting using variable: {weight_var}")
 
-    # Set up weight_training column
-    df["weight_training"] = df[weight_var]
+#     # Set up weight_training column
+#     df["weight_training"] = df[weight_var]
 
-    # Get unique classes present in data
-    present_classes = sorted(df["target"].unique())
+#     # Get unique classes present in data
+#     present_classes = sorted(df["target"].unique())
 
-    # Proportions of samples
-    weightings = df[["target", weight_var]].groupby("target").sum()
-    counts = df[["target", weight_var]].count()
+#     # Proportions of samples
+#     weightings = df[["target", weight_var]].groupby("target").sum()
+#     counts = df[["target", weight_var]].count()
 
-    # Reweight each class separately (0=signal, 1=bg1, 2=bg2)
-    for class_id in present_classes:    #in [0, 1, 2]:
-        w_factor = float(counts.iloc[0]) / float(weightings.loc[class_id].iloc[0])
-        logging.info(f"Reweighting class {class_id} with factor: {w_factor:.0f}")
+#     # Reweight each class separately (0=signal, 1=bg1, 2=bg2)
+#     for class_id in present_classes:    #in [0, 1, 2]:
+#         w_factor = float(counts.iloc[0]) / float(weightings.loc[class_id].iloc[0])
+#         logging.info(f"Reweighting class {class_id} with factor: {w_factor:.0f}")
         
-        df.loc[df["target"] == class_id, "weight_training"] *= w_factor
+#         df.loc[df["target"] == class_id, "weight_training"] *= w_factor
         
-        sum_nominal = df.loc[df["target"] == class_id, "weight_nominal"].sum()
-        sum_training = df.loc[df["target"] == class_id, "weight_training"].sum()
-        logging.info(f"Class {class_id} updated. Sum of 'weight_nominal': {sum_nominal:.5f}, Sum of 'weight_training': {sum_training:.0f}")
+#         sum_nominal = df.loc[df["target"] == class_id, "weight_nominal"].sum()
+#         sum_training = df.loc[df["target"] == class_id, "weight_training"].sum()
+#         logging.info(f"Class {class_id} updated. Sum of 'weight_nominal': {sum_nominal:.5f}, Sum of 'weight_training': {sum_training:.0f}")
 
-    return df
+#     return df
 
 ######################
+####python
+# filepath: /home/da21592/msci_project/transformer_renewed/bristol-tth-transformer-msc_project/src/preprocessing.py
 
+def apply_reweighting_per_class_multiclass(df, weight_var="weight_nominal") -> pd.DataFrame:
+    """
+    Equalizes the total training weight across all classes.
+    Each class gets total_weight / num_classes worth of 'weight_training'.
+    """
+    logging.info(f"Applying reweighting using variable: {weight_var}")
+
+    # Initialize 'weight_training' as a copy of the nominal weight
+    df["weight_training"] = df[weight_var]
+
+    # List all classes present
+    present_classes = sorted(df["target"].unique())
+    n_classes = len(present_classes)
+
+    # Sum of weights for the entire dataset
+    total_weight = df[weight_var].sum()
+    logging.info(f"Total sum of {weight_var} across dataset: {total_weight:.4f}")
+
+    # Sum of 'weight_var' for each class
+    weight_sums = df.groupby("target")[weight_var].sum()
+
+    # Reweight each class so that all classes share total_weight equally
+    target_share = total_weight / float(n_classes)
+    logging.info(f"Each class will be reweighted to have ~{target_share:.4f} total {weight_var}")
+
+    for class_id in present_classes:
+        class_sum = weight_sums.loc[class_id]
+        if class_sum <= 0:
+            logging.warning(f"Class {class_id} has non-positive total weight ({class_sum:.4f}). Skipping reweight.")
+            continue
+
+        w_factor = target_share / class_sum
+        logging.info(f"Class {class_id}: sum of {weight_var}={class_sum:.4f}, applying factor={w_factor:.4f}")
+
+        df.loc[df["target"] == class_id, "weight_training"] *= w_factor
+
+        # Log the updated sum
+        updated_sum = df.loc[df["target"] == class_id, "weight_training"].sum()
+        logging.info(f"Class {class_id} updated. Final sum of 'weight_training': {updated_sum:.4f}")
+
+    return df
 
 
 def apply_reweighting_per_process(df, weight_var="weight_nominal") -> pd.DataFrame:
@@ -428,6 +471,9 @@ def apply_reweighting_per_process(df, weight_var="weight_nominal") -> pd.DataFra
         logging.info(f"Process '{process}' updated. Sum of 'weight_nominal': {sum_nominal:.5f}, Sum of 'weight_training': {sum_training:.0f}")
 
     return df
+
+
+    
 
 def plot_weights(self, weight_var="weight_training", outdir="testing"):
     logging.info(f"Plotting weights for variable: {weight_var}")
